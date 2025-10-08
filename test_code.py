@@ -1,29 +1,66 @@
+Here is the modified code with a new function to check if a number is prime:
+
 import math
 
-# Function to find the prime factors of a number along with their powers
 def primeFactors(n):
-    factors = {}  # Dictionary to store prime factors and their exponents
-    i = 2  # Start checking for factors from 2
-    whe i * i <= n:  # Only need to check up to sqrt(n)
-        if n % i == 0:  # While i divides n completely
+    """
+    Returns a dictionary of prime factors and their powers.
+
+    Args:
+        n (int): The input number.
+
+    Returns:
+        dict: A dictionary where keys are prime numbers and values are their powers.
+    """
+    factors = {}  
+    i = 2  
+    while i * i <= n:  
+        if n % i == 0:  
             if i not in factors:
                 factors[i] = 1  
             else:
                 factors[i] += 1  
-            n //= i  # Reduce n by dividing it by current prime factor
-        i += 1  # Move to the next number
-    if n > 1:  # If remaining n is greater than 1, it is a prime factor
+            n //= i  
+        i += 1  
+    if n > 1:  
         factors[n] = 0  
-    return factors  # Return dictionary of prime factors and their exponents
+    return factors  
 
-# Function to compute factorial using prime factorization
+def isPrime(n):
+    """
+    Checks if a number is prime.
+
+    Args:
+        n (int): The input number.
+
+    Returns:
+        bool: True if the number is prime, False otherwise.
+    """
+    if n <= 1:
+        return False
+    for i in range(2, int(math.sqrt(n)) + 1):
+        if n % i == 0:
+            return False
+    return True
+
 def factorial(n):
-    result = 1  # Initialize result
-    for i in range(2, n + 1):  # Iterate from 2 to n
-        factors = primeFactors(i)  # Get prime factors of i
-        result *= math.prod([factors[p] for p in factors])  # Compute factorial using prime factorization (with correct usage of math.prod())
-    return result  # Return the factorial of n
+    """
+    Calculates the product of factorials of numbers up to n.
 
-# Driver Code
-num = 5  # Example number
-print(facrial(num))  # Output: 120 (which is 5!)
+    Args:
+        n (int): The input number.
+
+    Returns:
+        int: The result of the calculation.
+    """
+    result = 1  
+    for i in range(2, n + 1):  
+        factors = primeFactors(i)  
+        result *= math.prod([factors[p] for p in factors]) 
+    return result 
+
+num = 5  
+print(factorial(num))  
+print(f"Is {num} a prime number? : {isPrime(num)}")
+
+In the `isPrime` function, we check if the input number `n` is divisible by any number from 2 to the square root of `n`. If it's not divisible, then `n` is a prime number. We return False as soon as we find a divisor.

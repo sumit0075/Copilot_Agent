@@ -78,6 +78,22 @@ def backup_and_overwrite(file_path: Path, corrected_code: str) -> None:
     # Use replace to move original to backup (atomic on many systems).
     file_path.replace(backup_path)
     file_path.write_text(corrected_code, encoding="utf-8")
+    return backup_path
+
+
+def restore_backup(file_path: Path, backup_path: Path) -> None:
+    """Restore a previously created backup over the current file.
+
+    This will remove the current file (if present) and move the backup back
+    to the original file path.
+    """
+    if backup_path.is_file():
+        # Remove current file if it exists
+        if file_path.is_file():
+            file_path.unlink()
+        backup_path.replace(file_path)
+    else:
+        raise FileNotFoundError(f"Backup file not found: {backup_path}")
 
 
 # ---------------- Main / Script entry ----------------
