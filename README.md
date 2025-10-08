@@ -1,6 +1,6 @@
 # Local Copilot Agent
 
-Small utility that monitors `test_code.py`, sends the code to a local Ollama model for suggested function-level patches, and applies patches (saving a `.bak` backup).
+Small utility that can either run as a file-watching agent or via a Streamlit frontend to send Python files to a local Ollama model for suggested corrections and optionally apply those corrections (creating a backup).
 
 ## Prerequisites
 
@@ -21,6 +21,26 @@ Small utility that monitors `test_code.py`, sends the code to a local Ollama mod
 ```powershell
 python -m pip install -r requirements.txt
 ```
+
+## Streamlit frontend
+
+A Streamlit UI is provided at `streamlit_app.py` to pick a Python file from a local directory, preview it, send it to the local Ollama model for analysis, view the full LLM feedback and the extracted corrected code, and optionally overwrite the file while creating a backup.
+
+Run the app from the `Copilot_Agent` directory:
+
+```powershell
+streamlit run .\streamlit_app.py
+```
+
+UI summary:
+- Left column: directory picker, file select dropdown, "Analyze" button, LLM feedback, and extracted corrected code.
+- Right column: preview of the selected file.
+- Overwrite option: if enabled the corrected code will replace the original file and a backup will be created next to the original file with a `.backup.py` suffix.
+
+Notes:
+- The Streamlit app calls the same `copilot_agent` functions and therefore requires `ollama` to be configured and a compatible model available locally.
+- The app lists `.py` files in the given directory (non-recursive by default).
+
 
 ## Running
 
