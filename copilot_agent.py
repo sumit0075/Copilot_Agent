@@ -1,10 +1,15 @@
 import ollama
 from pathlib import Path
+from typing import Optional
 
-CODE_FILE = "test_code.py"  # Replace with your Python file path
 
 # ---------------- LLM Analysis ----------------
-def get_advanced_code_corrections(code_snippet: str):
+def get_advanced_code_corrections(code_snippet: str) -> str:
+    """Send the code snippet to the LLM and return its full text response.
+
+    This function returns the raw LLM response (string) so callers can display
+    or further parse it.
+    """
     prompt = f"""
 You are an AI programming assistant like VS Code Copilot, with advanced error detection.
 I will provide a Python code snippet. Your task is:
@@ -35,43 +40,57 @@ CORRECTED CODE:
 <Provide only the corrected code snippet. For missing variables, include suggested default definitions with a comment '# Placeholder value, replace if needed'>
 
 Here is the code to analyze:
-\"\"\"
-{code_snippet}
-\"\"\"
 """
+    prompt = prompt + f"""\n\n\"\"\"\n{code_snippet}\n\"\"\"\n"""
     response = ollama.chat(
         model="llama3.2",
         messages=[{"role": "user", "content": prompt}]
     )
-    return response['message']['content']
+    return response["message"]["content"]
 
 
 # ---------------- Extract Corrected Code ----------------
 def extract_corrected_code(llm_response: str) -> str:
-    """
-    Extract only the code from the LLM response (after 'CORRECTED CODE:').
+    """Extract only the code from the LLM response (after 'CORRECTED CODE:').
+
+    The LLM may format the corrected code as a fenced code block with or without
+    a language. This function tries to handle typical formats and falls back to
+    returning everything after the 'CORRECTED CODE:' marker.
     """
     import re
-    match = re.search(r"CORRECTED CODE:\s*```(?:python)?\s*(.*?)```", llm_response, re.DOTALL)
+    # Try fenced code block first
+    match = re.search(r"CORRECTED CODE:\s*```(?:python)?\s*(.*?)```", llm_response, re.DOTALL | re.IGNORECASE)
     if match:
         return match.group(1).strip()
-    else:
-        # If no code block formatting, return everything after "CORRECTED CODE:"
-        parts = llm_response.split("CORRECTED CODE:")
-        return parts[1].strip() if len(parts) > 1 else ""
+    # Fallback: everything after the marker
+    parts = llm_response.split("CORRECTED CODE:")
+    return parts[1].strip() if len(parts) > 1 else ""
+
 
 # ---------------- Backup & Overwrite ----------------
-def backup_and_overwrite(file_path: Path, corrected_code: str):
-    backup_path = file_path.with_name("backup.py")  # Backup in same folder
-    file_path.replace(backup_path)  # Move original to backup
-    file_path.write_text(corrected_code, encoding="utf-8")  # Overwrite with corrected code
-    print(f"✅ Original file overwritten. Backup saved as '{backup_path.name}'.")
+def backup_and_overwrite(file_path: Path, corrected_code: str) -> None:
+    """Backup the original file and overwrite it with corrected_code.
 
-# ---------------- Main ----------------
-path = Path(CODE_FILE)
-if not path.is_file():
-    print(f"❌ File not found: {CODE_FILE}")
-else:
+    The backup name is the original file name with a `.backup.py` suffix to
+    avoid clobbering an existing `backup.py` file.
+    """
+    backup_path = file_path.with_suffix(file_path.suffix + ".backup.py")
+    # Use replace to move original to backup (atomic on many systems).
+    file_path.replace(backup_path)
+    file_path.write_text(corrected_code, encoding="utf-8")
+
+
+# ---------------- Main / Script entry ----------------
+def main(code_file: Optional[str] = None, do_overwrite: bool = True) -> None:
+    """Run the full flow against `code_file`. If `code_file` is None, uses
+    'test_code.py' in the current directory.
+    """
+    CODE_FILE = code_file or "test_code.py"
+    path = Path(CODE_FILE)
+    if not path.is_file():
+        print(f"❌ File not found: {CODE_FILE}")
+        return
+
     code_content = path.read_text(encoding="utf-8")
     llm_feedback = get_advanced_code_corrections(code_content)
 
@@ -79,12 +98,20 @@ else:
     print("💡 LLM Feedback:\n")
     print(llm_feedback)
 
-    # Extract only the corrected code and overwrite file
+    # Extract only the corrected code and optionally overwrite file
     corrected_code = extract_corrected_code(llm_feedback)
     if corrected_code:
-        backup_and_overwrite(path, corrected_code)
+        if do_overwrite:
+            backup_and_overwrite(path, corrected_code)
+            print(f"✅ Original file overwritten. Backup saved as '{path.with_suffix(path.suffix + ".backup.py").name}'.")
+        else:
+            print("✅ Corrected code extracted (overwrite disabled).")
     else:
         print("⚠️ Could not extract corrected code from LLM response.")
+
+
+if __name__ == "__main__":
+    main()
 
 
 
